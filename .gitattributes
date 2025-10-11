@@ -1,0 +1,2 @@
+# Keep our version of agents.md when syncing from upstream
+agents.md merge=ours
