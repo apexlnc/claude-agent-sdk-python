@@ -31,10 +31,12 @@ class InternalClient:
             internal_hooks[event] = []
             for matcher in matchers:
                 # Convert HookMatcher to internal dict format
-                internal_matcher = {
+                internal_matcher: dict[str, Any] = {
                     "matcher": matcher.matcher if hasattr(matcher, "matcher") else None,
                     "hooks": matcher.hooks if hasattr(matcher, "hooks") else [],
                 }
+                if hasattr(matcher, "timeout") and matcher.timeout is not None:
+                    internal_matcher["timeout"] = matcher.timeout
                 internal_hooks[event].append(internal_matcher)
         return internal_hooks
 
@@ -71,7 +73,8 @@ class InternalClient:
             chosen_transport = transport
         else:
             chosen_transport = SubprocessCLITransport(
-                prompt=prompt, options=configured_options
+                prompt=prompt,
+                options=configured_options,
             )
 
         # Connect transport

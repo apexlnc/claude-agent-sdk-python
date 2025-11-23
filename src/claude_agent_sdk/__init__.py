@@ -39,6 +39,7 @@ from .types import (
     PreCompactHookInput,
     PreToolUseHookInput,
     ResultMessage,
+    SdkPluginConfig,
     SettingSource,
     StopHookInput,
     SubagentStopHookInput,
@@ -203,7 +204,7 @@ def create_sdk_mcp_server(
         - ClaudeAgentOptions: Configuration for using servers with query()
     """
     from mcp.server import Server
-    from mcp.types import TextContent, Tool
+    from mcp.types import ImageContent, TextContent, Tool
 
     # Create MCP server instance
     server = Server(name, version=version)
@@ -273,11 +274,19 @@ def create_sdk_mcp_server(
             # Convert result to MCP format
             # The decorator expects us to return the content, not a CallToolResult
             # It will wrap our return value in CallToolResult
-            content = []
+            content: list[TextContent | ImageContent] = []
             if "content" in result:
                 for item in result["content"]:
                     if item.get("type") == "text":
                         content.append(TextContent(type="text", text=item["text"]))
+                    if item.get("type") == "image":
+                        content.append(
+                            ImageContent(
+                                type="image",
+                                data=item["data"],
+                                mimeType=item["mimeType"],
+                            )
+                        )
 
             # Return just the content list - the decorator wraps it
             return content
@@ -331,6 +340,8 @@ __all__ = [
     # Agent support
     "AgentDefinition",
     "SettingSource",
+    # Plugin support
+    "SdkPluginConfig",
     # MCP Server Support
     "create_sdk_mcp_server",
     "tool",

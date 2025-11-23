@@ -75,10 +75,12 @@ class ClaudeSDKClient:
             internal_hooks[event] = []
             for matcher in matchers:
                 # Convert HookMatcher to internal dict format
-                internal_matcher = {
+                internal_matcher: dict[str, Any] = {
                     "matcher": matcher.matcher if hasattr(matcher, "matcher") else None,
                     "hooks": matcher.hooks if hasattr(matcher, "hooks") else [],
                 }
+                if hasattr(matcher, "timeout") and matcher.timeout is not None:
+                    internal_matcher["timeout"] = matcher.timeout
                 internal_hooks[event].append(internal_matcher)
         return internal_hooks
 
@@ -138,6 +140,13 @@ class ClaudeSDKClient:
                 if isinstance(config, dict) and config.get("type") == "sdk":
                     sdk_mcp_servers[name] = config["instance"]  # type: ignore[typeddict-item]
 
+        # Calculate initialize timeout from CLAUDE_CODE_STREAM_CLOSE_TIMEOUT env var if set
+        # CLAUDE_CODE_STREAM_CLOSE_TIMEOUT is in milliseconds, convert to seconds
+        initialize_timeout_ms = int(
+            os.environ.get("CLAUDE_CODE_STREAM_CLOSE_TIMEOUT", "60000")
+        )
+        initialize_timeout = max(initialize_timeout_ms / 1000.0, 60.0)
+
         # Create Query to handle control protocol
         self._query = Query(
             transport=self._transport,
@@ -147,6 +156,7 @@ class ClaudeSDKClient:
             if self.options.hooks
             else None,
             sdk_mcp_servers=sdk_mcp_servers,
+            initialize_timeout=initialize_timeout,
         )
 
         # Start reading messages and initialize
